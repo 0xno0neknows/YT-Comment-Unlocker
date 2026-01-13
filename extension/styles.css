@@ -1,0 +1,734 @@
+/* YouTube Comments Extension - Content Script Styles */
+/* Seamless integration with YouTube's native theme */
+
+/* ============== MAIN PANEL ============== */
+#yt-comments-ext-panel {
+  /* Light mode variables (default) */
+  --yce-bg: #ffffff;
+  --yce-bg-secondary: #f2f2f2;
+  --yce-bg-elevated: #f9f9f9;
+  --yce-border: #d3d3d3;
+  --yce-text: #0f0f0f;
+  --yce-text-secondary: #606060;
+  --yce-text-muted: #909090;
+  --yce-accent: #065fd4;
+  --yce-accent-hover: #0056b3;
+  --yce-accent-rgb: 6, 95, 212;
+  --yce-hover: #e5e5e5;
+  --yce-red: #cc0000;
+  --yce-red-hover: #990000;
+  --yce-gradient-start: #cc0000;
+  --yce-gradient-end: #ff4e45;
+
+  font-family: 'Roboto', 'Arial', sans-serif;
+  font-size: 14px;
+  background: var(--yce-bg);
+  border: 1px solid var(--yce-border);
+  border-radius: 12px;
+  margin: 24px 0;
+  padding: 16px 24px;
+  color: var(--yce-text);
+  line-height: 1.5;
+}
+
+/* Dark mode support - matches YouTube's dark theme */
+/* ONLY use html[dark] attribute - darker-dark-theme is present in both modes */
+html[dark] #yt-comments-ext-panel {
+  --yce-bg: #0f0f0f;
+  --yce-bg-secondary: #272727;
+  --yce-bg-elevated: #1a1a1a;
+  --yce-border: #3f3f3f;
+  --yce-text: #f1f1f1;
+  --yce-text-secondary: #aaaaaa;
+  --yce-text-muted: #717171;
+  --yce-accent: #3ea6ff;
+  --yce-accent-hover: #65b8ff;
+  --yce-accent-rgb: 62, 166, 255;
+  --yce-hover: #3f3f3f;
+  --yce-red: #ff0000;
+  --yce-red-hover: #cc0000;
+  --yce-gradient-start: #ff0000;
+  --yce-gradient-end: #ff4e45;
+}
+
+/* ============== HEADER ============== */
+.yce-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--yce-border);
+}
+
+.yce-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.yce-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--yce-accent);
+}
+
+.yce-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--yce-text);
+  margin: 0;
+}
+
+.yce-badge {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, var(--yce-gradient-start), var(--yce-gradient-end));
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.yce-comment-count {
+  font-size: 14px;
+  color: var(--yce-text-secondary);
+}
+
+.yce-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Refresh Button */
+.yce-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: var(--yce-text-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.yce-refresh-btn:hover {
+  background: var(--yce-hover);
+  color: var(--yce-text);
+}
+
+.yce-refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.yce-refresh-btn.spinning svg {
+  animation: yce-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes yce-refresh-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Sort Dropdown */
+.yce-sort-dropdown {
+  position: relative;
+}
+
+.yce-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--yce-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 18px;
+  transition: background 0.2s;
+}
+
+.yce-sort-btn:hover {
+  background: var(--yce-hover);
+}
+
+.yce-sort-btn svg {
+  flex-shrink: 0;
+}
+
+.yce-sort-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--yce-bg-secondary);
+  border: 1px solid var(--yce-border);
+  border-radius: 8px;
+  padding: 8px 0;
+  min-width: 150px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.yce-sort-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.yce-sort-option {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--yce-text);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.yce-sort-option:hover {
+  background: var(--yce-hover);
+}
+
+.yce-sort-option.active {
+  color: var(--yce-accent);
+  font-weight: 500;
+}
+
+/* ============== NOTICE ============== */
+.yce-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--yce-bg-secondary);
+  border: 1px solid var(--yce-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.yce-notice-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--yce-accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.yce-notice span {
+  font-size: 13px;
+  color: var(--yce-text-secondary);
+  line-height: 1.5;
+}
+
+/* ============== ADD COMMENT SECTION ============== */
+.yce-add-comment-section {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.yce-user-avatar,
+.yce-comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--yce-gradient-start), var(--yce-gradient-end));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.yce-comment-input-wrapper {
+  flex: 1;
+}
+
+.yce-comment-input,
+.yce-reply-input {
+  width: 100%;
+  min-height: 24px;
+  max-height: 200px;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 1px solid var(--yce-border);
+  background: transparent;
+  color: var(--yce-text);
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.yce-comment-input:focus,
+.yce-reply-input:focus {
+  border-bottom-color: var(--yce-accent);
+}
+
+.yce-comment-input::placeholder,
+.yce-reply-input::placeholder {
+  color: var(--yce-text-muted);
+}
+
+.yce-comment-actions,
+.yce-reply-actions {
+  display: none;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ============== BUTTONS ============== */
+.yce-btn {
+  padding: 10px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: inherit;
+}
+
+.yce-btn-cancel {
+  background: transparent;
+  color: var(--yce-text);
+}
+
+.yce-btn-cancel:hover {
+  background: var(--yce-hover);
+}
+
+.yce-btn-primary {
+  background: var(--yce-accent);
+  color: white;
+}
+
+.yce-btn-primary:hover:not(:disabled) {
+  background: var(--yce-accent-hover);
+}
+
+.yce-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============== LOGIN PROMPT ============== */
+.yce-login-prompt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--yce-bg-secondary);
+  border-radius: 8px;
+}
+
+.yce-login-prompt p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--yce-text-secondary);
+}
+
+/* ============== COMMENTS CONTAINER ============== */
+.yce-comments-container {
+  margin-top: 16px;
+}
+
+/* ============== LOADING ============== */
+.yce-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px;
+  color: var(--yce-text-secondary);
+}
+
+.yce-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--yce-border);
+  border-top-color: var(--yce-accent);
+  border-radius: 50%;
+  animation: yce-spin 0.8s linear infinite;
+}
+
+@keyframes yce-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============== EMPTY STATE ============== */
+.yce-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px;
+  color: var(--yce-text-secondary);
+  text-align: center;
+}
+
+.yce-empty-icon {
+  width: 48px;
+  height: 48px;
+  opacity: 0.5;
+}
+
+.yce-empty p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--yce-text);
+}
+
+.yce-empty span {
+  font-size: 14px;
+}
+
+/* ============== ERROR STATE ============== */
+.yce-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  text-align: center;
+}
+
+.yce-error p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #c62828;
+}
+
+.yce-error span {
+  font-size: 14px;
+  color: var(--yce-text-secondary);
+}
+
+.yce-error .yce-btn {
+  margin-top: 8px;
+}
+
+/* ============== COMMENT ============== */
+.yce-comment {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  animation: yce-fadeIn 0.3s ease;
+}
+
+@keyframes yce-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.yce-comment.yce-reply {
+  margin-left: 52px;
+  margin-top: 12px;
+}
+
+.yce-comment.yce-reply .yce-comment-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.yce-comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.yce-comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.yce-comment-author {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--yce-text);
+}
+
+.yce-comment-time {
+  font-size: 12px;
+  color: var(--yce-text-muted);
+}
+
+.yce-edited-indicator {
+  font-size: 12px;
+  color: var(--yce-text-muted);
+  font-style: italic;
+}
+
+.yce-comment-text {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--yce-text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Edit Form */
+.yce-edit-form {
+  margin-bottom: 8px;
+}
+
+.yce-edit-input {
+  width: 100%;
+  min-height: 60px;
+  max-height: 200px;
+  padding: 12px;
+  border: 1px solid var(--yce-border);
+  border-radius: 8px;
+  background: var(--yce-bg-secondary);
+  color: var(--yce-text);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.yce-edit-input:focus {
+  border-color: var(--yce-accent);
+}
+
+.yce-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.yce-comment-footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Delete Button */
+.yce-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-left: 4px;
+  border: none;
+  background: transparent;
+  color: var(--yce-text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.yce-comment:hover .yce-delete-btn {
+  opacity: 1;
+}
+
+.yce-delete-btn:hover {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff4444;
+}
+
+/* Edit Button */
+.yce-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--yce-text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.yce-comment:hover .yce-edit-btn {
+  opacity: 1;
+}
+
+.yce-edit-btn:hover {
+  background: rgba(var(--yce-accent-rgb), 0.1);
+  color: var(--yce-accent);
+}
+
+/* Vote Buttons */
+.yce-vote-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--yce-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 16px;
+  transition: all 0.2s;
+}
+
+.yce-vote-btn:hover {
+  background: var(--yce-hover);
+}
+
+.yce-vote-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.yce-vote-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.yce-vote-count {
+  font-size: 12px;
+  min-width: 12px;
+  text-align: center;
+}
+
+/* Like button active state */
+.yce-like-btn.active {
+  color: var(--yce-accent);
+}
+
+.yce-like-btn.active svg {
+  fill: var(--yce-accent);
+}
+
+/* Dislike button active state */
+.yce-dislike-btn.active {
+  color: #ff6b6b;
+}
+
+.yce-dislike-btn.active svg {
+  fill: #ff6b6b;
+}
+
+.yce-reply-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--yce-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 18px;
+  transition: background 0.2s;
+}
+
+.yce-reply-btn:hover {
+  background: var(--yce-hover);
+}
+
+.yce-reply-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============== REPLY FORM ============== */
+.yce-reply-form {
+  margin-top: 12px;
+}
+
+.yce-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ============== REPLIES CONTAINER ============== */
+.yce-replies {
+  margin-top: 12px;
+}
+
+/* ============== VIEW REPLIES TOGGLE ============== */
+.yce-view-replies-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-left: 52px;
+  border: none;
+  background: transparent;
+  color: var(--yce-accent);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 18px;
+  transition: background 0.2s;
+}
+
+.yce-view-replies-btn:hover {
+  background: rgba(var(--yce-accent-rgb), 0.1);
+}
+
+/* ============== RESPONSIVE ============== */
+@media (max-width: 600px) {
+  #yt-comments-ext-panel {
+    padding: 12px 16px;
+    margin: 16px 0;
+  }
+
+  .yce-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .yce-login-prompt {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .yce-comment.yce-reply {
+    margin-left: 24px;
+  }
+}

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Comments Unlocker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+          <path
+            d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+        </svg>
+        <h1>YT Comments</h1>
+      </div>
+      <span class="version">v1.0.0</span>
+    </header>
+
+    <!-- Status Indicator -->
+    <div class="status-bar" id="statusBar">
+      <span class="status-dot"></span>
+      <span class="status-text">Checking server...</span>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Auth Section (shown when not logged in) -->
+      <div id="authSection" class="section">
+        <!-- Auth Tabs -->
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" data-auth-tab="login">Login</button>
+          <button class="auth-tab-btn" data-auth-tab="register">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <div class="auth-form-container active" id="loginForm">
+          <form id="loginFormEl">
+            <div class="form-group">
+              <label for="loginUsername">Username</label>
+              <input type="text" id="loginUsername" required placeholder="Enter username" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" required placeholder="Enter password"
+                autocomplete="current-password">
+            </div>
+
+            <div class="error-message" id="loginError"></div>
+
+            <button type="submit" class="btn btn-primary" id="loginBtn">
+              <span>Login</span>
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- Register Form -->
+        <div class="auth-form-container" id="registerForm">
+          <form id="registerFormEl">
+            <div class="form-group">
+              <label for="regUsername">Username</label>
+              <input type="text" id="regUsername" required placeholder="Choose username (min 4 chars)"
+                autocomplete="username" minlength="4">
+              <div class="username-status" id="usernameStatus"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="regPassword">Password</label>
+              <input type="password" id="regPassword" required placeholder="Choose password (min 6 chars)"
+                autocomplete="new-password" minlength="6">
+            </div>
+
+            <div class="form-group">
+              <label for="regFirstName">First Name</label>
+              <input type="text" id="regFirstName" required placeholder="John" autocomplete="given-name">
+            </div>
+
+            <div class="form-group">
+              <label for="regLastName">Last Name</label>
+              <input type="text" id="regLastName" required placeholder="Doe" autocomplete="family-name">
+            </div>
+
+            <div class="error-message" id="registerError"></div>
+
+            <button type="submit" class="btn btn-primary" id="registerBtn">
+              <span>Register</span>
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
+              </svg>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- User Profile (shown when logged in) -->
+      <div id="profileSection" class="section hidden">
+        <!-- Tab Navigation -->
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="profile">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+              <path
+                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+            Profile
+          </button>
+          <button class="tab-btn" data-tab="comments">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+              <path
+                d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+            </svg>
+            My Comments
+          </button>
+        </div>
+
+        <!-- Profile Tab -->
+        <div class="tab-content active" id="profileTab">
+          <div class="profile-card">
+            <div class="profile-avatar" id="profileAvatar">JD</div>
+            <div class="profile-info">
+              <h3 id="profileName">John Doe</h3>
+              <span class="profile-username" id="profileUsername">@username</span>
+            </div>
+            <span class="registered-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+              </svg>
+              Registered
+            </span>
+          </div>
+
+          <!-- Profile Details -->
+          <div class="profile-details">
+            <div class="detail-item">
+              <label>Username</label>
+              <span id="detailUsername">-</span>
+            </div>
+            <div class="detail-item">
+              <label>First Name</label>
+              <span id="detailFirstName">John</span>
+            </div>
+            <div class="detail-item">
+              <label>Last Name</label>
+              <span id="detailLastName">Doe</span>
+            </div>
+            <div class="detail-item">
+              <label>User ID</label>
+              <div class="id-container">
+                <code id="detailUserId">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>
+                <button class="copy-btn" id="copyIdBtn" title="Copy ID">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                    <path
+                      d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="detail-item">
+              <label>Registered</label>
+              <span id="detailCreatedAt">-</span>
+            </div>
+          </div>
+
+          <div class="info-box">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </svg>
+            <p>Visit a YouTube video with disabled comments to start using the extension.</p>
+          </div>
+
+          <button class="btn btn-secondary" id="logoutBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+            </svg>
+            <span>Logout</span>
+          </button>
+        </div>
+
+        <!-- Comments Tab -->
+        <div class="tab-content" id="commentsTab">
+          <div class="comments-header">
+            <h3>Your Comments</h3>
+            <span class="comment-count" id="userCommentCount">0 comments</span>
+          </div>
+
+          <div class="user-comments-container" id="userCommentsContainer">
+            <div class="loading-comments">
+              <div class="spinner"></div>
+              <span>Loading your comments...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <p>Made with ❤️ for YouTube community</p>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
