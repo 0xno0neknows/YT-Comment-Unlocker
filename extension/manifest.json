@@ -8,8 +8,7 @@
         "activeTab"
     ],
     "host_permissions": [
-        "https://www.youtube.com/*",
-        "http://localhost:3000/*"
+        "https://www.youtube.com/*"
     ],
     "incognito": "split",
     "background": {

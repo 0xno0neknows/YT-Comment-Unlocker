@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
@@ -8,9 +9,48 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
 const SALT_ROUNDS = 10;
 
-// Middleware
+// ============== RATE LIMITERS ==============
+
+// General API rate limiter - 100 requests per minute per IP
+const generalLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 100,
+    message: { error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Strict limiter for login - 5 attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5,
+    message: { error: 'Too many login attempts, please try again after 15 minutes' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Strict limiter for registration - 3 accounts per hour per IP
+const registerLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3,
+    message: { error: 'Too many accounts created, please try again after an hour' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Comment posting limiter - 10 comments per minute per IP
+const commentLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10,
+    message: { error: 'Too many comments, please slow down' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// ============== MIDDLEWARE ==============
 app.use(cors());
 app.use(express.json());
+app.use(generalLimiter); // Apply general limiter to all routes
 
 // ============== AUTH ENDPOINTS ==============
 
@@ -51,7 +91,7 @@ app.get('/api/auth/check-username/:username', async (req, res) => {
 });
 
 // Register a new user
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', registerLimiter, async (req, res) => {
     try {
         const { username, password, firstName, lastName } = req.body;
 
@@ -62,7 +102,7 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
 
-        // Validate username format
+        // Validate username format (alphanumeric only - prevents injection)
         const usernameRegex = /^[a-zA-Z0-9]+$/;
         if (!usernameRegex.test(username)) {
             return res.status(400).json({
@@ -70,16 +110,16 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
 
-        if (username.length < 4) {
+        if (username.length < 4 || username.length > 20) {
             return res.status(400).json({
-                error: 'Username must be at least 4 characters'
+                error: 'Username must be between 4 and 20 characters'
             });
         }
 
-        // Validate password
-        if (password.length < 6) {
+        // Validate password length
+        if (password.length < 6 || password.length > 32) {
             return res.status(400).json({
-                error: 'Password must be at least 6 characters'
+                error: 'Password must be between 6 and 32 characters'
             });
         }
 
@@ -120,7 +160,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login user
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -277,7 +317,7 @@ app.get('/api/videos/:videoId/comments', async (req, res) => {
 });
 
 // Add a new comment to a video
-app.post('/api/videos/:videoId/comments', async (req, res) => {
+app.post('/api/videos/:videoId/comments', commentLimiter, async (req, res) => {
     try {
         const { videoId } = req.params;
         const { userId, content } = req.body;
@@ -333,7 +373,7 @@ app.post('/api/videos/:videoId/comments', async (req, res) => {
 });
 
 // Reply to a comment
-app.post('/api/comments/:commentId/replies', async (req, res) => {
+app.post('/api/comments/:commentId/replies', commentLimiter, async (req, res) => {
     try {
         const { commentId } = req.params;
         const { userId, content } = req.body;
