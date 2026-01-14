@@ -4,11 +4,12 @@ A Chrome extension that enables community comments on YouTube videos where comme
 
 ![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green)
 ![License](https://img.shields.io/badge/License-MIT-blue)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933)
 
 ## ✨ Features
 
 - **💬 Community Comments** - Add comments on any YouTube video, even when disabled
-- **🔐 User Authentication** - Register/login with username and password
+- **🔐 User Authentication** - Secure registration and login
 - **👍 Like/Dislike** - Vote on comments with visual feedback
 - **↩️ Replies** - Reply to other users' comments
 - **✏️ Edit Comments** - Edit your comments within 1 hour of posting
@@ -16,12 +17,6 @@ A Chrome extension that enables community comments on YouTube videos where comme
 - **🔄 Sorting** - Sort by Newest, Oldest, or Top comments
 - **🎨 Theme Support** - Automatically matches YouTube's dark/light theme
 - **🔃 Refresh Button** - Manually refresh comments without page reload
-
-## 📸 Screenshots
-
-| Dark Mode | Light Mode |
-|-----------|------------|
-| Dark theme matching YouTube | Light theme matching YouTube |
 
 ## 🛠️ Tech Stack
 
@@ -34,48 +29,48 @@ A Chrome extension that enables community comments on YouTube videos where comme
 - Node.js + Express.js
 - PostgreSQL database
 - Prisma ORM
+- bcrypt for password hashing
 
-## 🚀 Installation
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL database
+- PostgreSQL database (local or cloud like [Neon](https://neon.tech))
 - Chrome browser
 
-### Backend Setup
+### 1. Clone & Install
 
-1. Clone the repository:
 ```bash
 git clone https://github.com/0xno0neknows/YT-Comment-Unlocker.git
-cd YT-Comment-Unlocker
-```
-
-2. Install server dependencies:
-```bash
-cd server
+cd YT-Comment-Unlocker/server
 npm install
 ```
 
-3. Create `.env` file:
+### 2. Configure Environment
+
+Create a `.env` file in the `server` directory:
+
 ```env
-DATABASE_URL="postgresql://username:password@localhost:5432/ytcomments"
+DATABASE_URL="your-postgresql-connection-string"
 PORT=3000
 ```
 
-4. Push database schema:
+### 3. Setup Database
+
 ```bash
 npm run db:push
 ```
 
-5. Start the server:
+### 4. Start Server
+
 ```bash
 npm run dev
 ```
 
-### Extension Setup
+### 5. Load Extension
 
-1. Open Chrome and go to `chrome://extensions`
-2. Enable "Developer mode" (top right)
+1. Open Chrome → `chrome://extensions`
+2. Enable "Developer mode"
 3. Click "Load unpacked"
 4. Select the `extension` folder
 
@@ -84,69 +79,67 @@ npm run dev
 ```
 YT-Comment-Unlocker/
 ├── extension/
-│   ├── manifest.json      # Extension configuration
-│   ├── background.js      # Service worker (API calls)
-│   ├── content.js         # Injects comment panel
-│   ├── popup.html/js/css  # Extension popup UI
-│   ├── styles.css         # Comment panel styles
-│   └── icons/             # Extension icons
+│   ├── manifest.json      # Extension config
+│   ├── background.js      # Service worker
+│   ├── content.js         # UI injection
+│   ├── popup.html/js/css  # Popup UI
+│   ├── styles.css         # Panel styles
+│   └── icons/
 ├── server/
-│   ├── index.js           # Express server + API
+│   ├── index.js           # Express API
 │   ├── prisma/
-│   │   └── schema.prisma  # Database schema
-│   ├── package.json
-│   └── .env.example
+│   │   └── schema.prisma  # DB schema
+│   └── package.json
 └── README.md
 ```
 
-## 🔌 API Endpoints
+## 🔌 API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login user |
-| GET | `/api/videos/:videoId/comments` | Get comments for video |
-| POST | `/api/videos/:videoId/comments` | Add comment |
-| PUT | `/api/comments/:id` | Edit comment (1hr limit) |
-| DELETE | `/api/comments/:id` | Delete comment |
-| POST | `/api/comments/:id/vote` | Like/dislike comment |
-| POST | `/api/comments/:id/replies` | Reply to comment |
-
-## 🎨 Theme Support
-
-The extension automatically detects YouTube's theme:
-- Uses `html[dark]` attribute for dark mode detection
-- CSS variables for easy theme customization
-- Seamless transition when switching themes
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `PORT` | Server port | 3000 |
+| `POST` | `/api/auth/register` | Register user |
+| `POST` | `/api/auth/login` | Login user |
+| `GET` | `/api/videos/:id/comments` | Get comments |
+| `POST` | `/api/videos/:id/comments` | Add comment |
+| `PUT` | `/api/comments/:id` | Edit comment |
+| `DELETE` | `/api/comments/:id` | Delete comment |
+| `POST` | `/api/comments/:id/vote` | Vote on comment |
+| `POST` | `/api/comments/:id/replies` | Add reply |
+| `GET` | `/api/health` | Health check |
 
 ## 🚢 Deployment
 
-### Backend (Railway/Render)
+### Backend
+Deploy to Railway, Render, or any Node.js hosting:
 1. Connect your GitHub repo
 2. Set `DATABASE_URL` environment variable
 3. Deploy
 
-### Extension (Chrome Web Store)
-1. Create developer account ($5 one-time fee)
+### Database
+Use a managed PostgreSQL service:
+- [Neon](https://neon.tech) - Free tier available
+- [Supabase](https://supabase.com) - Free tier available
+- [Railway](https://railway.app) - Integrated option
+
+### Extension
+1. Create [Chrome Web Store Developer](https://chrome.google.com/webstore/devconsole) account ($5)
 2. Zip the `extension` folder
-3. Upload to Chrome Web Store
+3. Upload and submit for review
+
+## 🔒 Security
+
+- Passwords are hashed using bcrypt
+- No sensitive data stored in the extension
+- Environment variables for all secrets
+- Ownership validation for edit/delete
 
 ## 📝 License
 
-MIT License - feel free to use and modify!
+MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions welcome! Please open an issue or submit a PR.
 
 ---
 

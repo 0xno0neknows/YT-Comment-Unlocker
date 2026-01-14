@@ -28,3 +28,8 @@ Thumbs.db
 # Extension build
 *.crx
 *.pem
+
+# Internal documentation (not for public repo)
+CODEBASE_DOCS.md
+DEPLOYMENT_GUIDE.md
+server/DATABASE_SETUP.md
