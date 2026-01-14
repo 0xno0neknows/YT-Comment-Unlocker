@@ -18,6 +18,47 @@ A Chrome extension that enables community comments on YouTube videos where comme
 - **🎨 Theme Support** - Automatically matches YouTube's dark/light theme
 - **🔃 Refresh Button** - Manually refresh comments without page reload
 
+---
+
+## 📖 How to Use
+
+### Step 1: Install the Extension
+
+#### Option 1: Chrome Web Store (Recommended)
+> 🚧 **Coming Soon** - Pending Chrome Web Store approval
+
+#### Option 2: Install using Developer Mode
+1. Download or clone this repository
+2. Open Chrome → `chrome://extensions`
+3. Enable **"Developer mode"** (top right toggle)
+4. Click **"Load unpacked"**
+5. Select the `extension` folder from the downloaded repository
+
+### Step 2: Sign In
+
+1. Click the **extension icon** in Chrome toolbar
+2. Choose **"Register"** to create a new account:
+   - Enter username, password (min 6 chars), first name, last name
+   - Click **Register**
+3. Or **"Login"** if you already have an account
+
+### Step 3: Start Commenting
+
+1. Visit any YouTube video (works on videos with disabled comments too!)
+2. Scroll down to see the **"Community Comments"** panel
+3. Type your comment and click **Post**
+4. Use the **sort dropdown** to change comment order
+5. Click **↻** to refresh comments
+
+### Step 4: Interact with Comments
+
+- **👍 / 👎** - Like or dislike comments
+- **↩️ Reply** - Reply to any comment
+- **✏️ Edit** - Edit your own comments (within 1 hour)
+- **🗑️ Delete** - Remove your own comments
+
+---
+
 ## 🛠️ Tech Stack
 
 ### Extension
@@ -31,7 +72,9 @@ A Chrome extension that enables community comments on YouTube videos where comme
 - Prisma ORM
 - bcrypt for password hashing
 
-## 🚀 Quick Start
+---
+
+## 🚀 Quick Start (For Developers)
 
 ### Prerequisites
 - Node.js 18+
@@ -74,6 +117,8 @@ npm run dev
 3. Click "Load unpacked"
 4. Select the `extension` folder
 
+---
+
 ## 📁 Project Structure
 
 ```
@@ -93,6 +138,8 @@ YT-Comment-Unlocker/
 └── README.md
 ```
 
+---
+
 ## 🔌 API Reference
 
 | Method | Endpoint | Description |
@@ -107,24 +154,7 @@ YT-Comment-Unlocker/
 | `POST` | `/api/comments/:id/replies` | Add reply |
 | `GET` | `/api/health` | Health check |
 
-## 🚢 Deployment
-
-### Backend
-Deploy to Railway, Render, or any Node.js hosting:
-1. Connect your GitHub repo
-2. Set `DATABASE_URL` environment variable
-3. Deploy
-
-### Database
-Use a managed PostgreSQL service:
-- [Neon](https://neon.tech) - Free tier available
-- [Supabase](https://supabase.com) - Free tier available
-- [Railway](https://railway.app) - Integrated option
-
-### Extension
-1. Create [Chrome Web Store Developer](https://chrome.google.com/webstore/devconsole) account ($5)
-2. Zip the `extension` folder
-3. Upload and submit for review
+---
 
 ## 🔒 Security
 
@@ -132,6 +162,8 @@ Use a managed PostgreSQL service:
 - No sensitive data stored in the extension
 - Environment variables for all secrets
 - Ownership validation for edit/delete
+
+---
 
 ## 📝 License
 
