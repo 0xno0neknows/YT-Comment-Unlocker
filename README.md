@@ -1,8 +1,10 @@
 # 🎬 YT Comment Unlocker
 
-A Chrome extension that enables community comments on YouTube videos where comments are disabled (kids content, etc.).
+A browser extension that unlocks community-driven comments on YouTube videos where the native comment section is unavailable — whether disabled by the video creator, restricted by YouTube for kids' content, or turned off for any other reason.
 
-![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green)
+![Chrome](https://img.shields.io/badge/Chrome-Supported-green)
+![Brave](https://img.shields.io/badge/Brave-Supported-orange)
+![Edge](https://img.shields.io/badge/Edge-Supported-blue)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933)
 
@@ -20,6 +22,18 @@ A Chrome extension that enables community comments on YouTube videos where comme
 
 ---
 
+## 🌐 Browser Compatibility
+
+| Browser | Supported | Installation |
+|---------|-----------|--------------|
+| **Google Chrome** | ✅ | Chrome Web Store or Developer Mode |
+| **Brave** | ✅ | Chrome Web Store or Developer Mode |
+| **Microsoft Edge** | ✅ | Chrome Web Store* or Developer Mode |
+
+> *Edge users: Enable "Allow extensions from other stores" when prompted to install from Chrome Web Store.
+
+---
+
 ## 📖 How to Use
 
 ### Step 1: Install the Extension
@@ -27,16 +41,32 @@ A Chrome extension that enables community comments on YouTube videos where comme
 #### Option 1: Chrome Web Store (Recommended)
 > 🚧 **Coming Soon** - Pending Chrome Web Store approval
 
+Once published, Brave users can install directly. Edge users need to enable "Allow extensions from other stores" first.
+
 #### Option 2: Install using Developer Mode
+
+**Chrome:**
 1. Download or clone this repository
 2. Open Chrome → `chrome://extensions`
 3. Enable **"Developer mode"** (top right toggle)
 4. Click **"Load unpacked"**
-5. Select the `extension` folder from the downloaded repository
+5. Select the `extension` folder
+
+**Brave:**
+1. Open Brave → `brave://extensions`
+2. Enable **"Developer mode"**
+3. Click **"Load unpacked"**
+4. Select the `extension` folder
+
+**Edge:**
+1. Open Edge → `edge://extensions`
+2. Enable **"Developer mode"**
+3. Click **"Load unpacked"**
+4. Select the `extension` folder
 
 ### Step 2: Sign In
 
-1. Click the **extension icon** in Chrome toolbar
+1. Click the **extension icon** in browser toolbar
 2. Choose **"Register"** to create a new account:
    - Enter username, password (min 6 chars), first name, last name
    - Click **Register**
@@ -79,7 +109,7 @@ A Chrome extension that enables community comments on YouTube videos where comme
 ### Prerequisites
 - Node.js 18+
 - PostgreSQL database (local or cloud like [Neon](https://neon.tech))
-- Chrome browser
+- Chrome, Brave, or Edge browser
 
 ### 1. Clone & Install
 
@@ -112,10 +142,7 @@ npm run dev
 
 ### 5. Load Extension
 
-1. Open Chrome → `chrome://extensions`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `extension` folder
+Follow the Developer Mode instructions above for your preferred browser.
 
 ---
 
