@@ -1,5 +1,5 @@
 // Background service worker for YouTube Comments Extension
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = 'https://yt-comment-unlocker-production.up.railway.app/api';
 
 // Helper to get the appropriate storage based on incognito status
 function getStorage(isIncognito) {
