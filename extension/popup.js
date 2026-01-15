@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tabBtns = document.querySelectorAll('.tab-btn');
     const copyIdBtn = document.getElementById('copyIdBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
 
     // Form elements
     const loginFormEl = document.getElementById('loginFormEl');
@@ -164,6 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const password = document.getElementById('regPassword').value;
         const firstName = document.getElementById('regFirstName').value.trim();
         const lastName = document.getElementById('regLastName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
         const registerError = document.getElementById('registerError');
 
         registerError.textContent = '';
@@ -194,6 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 password,
                 firstName,
                 lastName,
+                email: email || undefined,
                 isIncognito
             });
 
@@ -247,6 +250,56 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, 2000);
         } catch (err) {
             console.error('Failed to copy:', err);
+        }
+    });
+
+    // Delete account button
+    deleteAccountBtn.addEventListener('click', async () => {
+        const confirmed = confirm(
+            'Are you sure you want to delete your account?\n\n' +
+            'This will permanently delete:\n' +
+            '• Your account\n' +
+            '• All your comments\n' +
+            '• All your votes\n\n' +
+            'This action cannot be undone.'
+        );
+
+        if (!confirmed) return;
+
+        deleteAccountBtn.disabled = true;
+        deleteAccountBtn.textContent = 'Deleting...';
+
+        try {
+            const response = await chrome.runtime.sendMessage({
+                action: 'deleteAccount',
+                isIncognito
+            });
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            currentUser = null;
+            showAuth();
+
+            // Notify content script
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: 'userLoggedOut' });
+                }
+            });
+
+            alert('Your account has been deleted.');
+        } catch (error) {
+            alert('Failed to delete account: ' + error.message);
+        } finally {
+            deleteAccountBtn.disabled = false;
+            deleteAccountBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
+                <span>Delete Account</span>
+            `;
         }
     });
 

@@ -8,6 +8,98 @@ function getStorage(isIncognito) {
     return isIncognito ? chrome.storage.session : chrome.storage.local;
 }
 
+// Get stored auth data
+async function getAuthData(isIncognito) {
+    const storage = getStorage(isIncognito);
+    const result = await storage.get(['accessToken', 'refreshToken', 'user']);
+    return result;
+}
+
+// Store auth data
+async function storeAuthData(isIncognito, data) {
+    const storage = getStorage(isIncognito);
+    await storage.set({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        user: data.user
+    });
+}
+
+// Clear auth data
+async function clearAuthData(isIncognito) {
+    const storage = getStorage(isIncognito);
+    await storage.remove(['accessToken', 'refreshToken', 'user']);
+}
+
+// Refresh access token
+async function refreshAccessToken(isIncognito) {
+    const { refreshToken } = await getAuthData(isIncognito);
+
+    if (!refreshToken) {
+        throw new Error('No refresh token available');
+    }
+
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken })
+    });
+
+    if (!response.ok) {
+        // Refresh token is invalid/expired - clear auth and require re-login
+        await clearAuthData(isIncognito);
+        throw new Error('Session expired. Please login again.');
+    }
+
+    const data = await response.json();
+
+    // Update stored access token and user
+    const storage = getStorage(isIncognito);
+    await storage.set({
+        accessToken: data.accessToken,
+        user: data.user
+    });
+
+    return data.accessToken;
+}
+
+// Make authenticated API request with auto-refresh
+async function authenticatedFetch(url, options = {}, isIncognito) {
+    let { accessToken } = await getAuthData(isIncognito);
+
+    if (!accessToken) {
+        throw new Error('Not logged in');
+    }
+
+    // Add auth header
+    options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${accessToken}`
+    };
+
+    let response = await fetch(url, options);
+
+    // If token expired, try to refresh and retry
+    if (response.status === 401) {
+        const errorData = await response.json();
+
+        if (errorData.code === 'TOKEN_EXPIRED') {
+            // Try to refresh token
+            try {
+                accessToken = await refreshAccessToken(isIncognito);
+
+                // Retry with new token
+                options.headers['Authorization'] = `Bearer ${accessToken}`;
+                response = await fetch(url, options);
+            } catch (refreshError) {
+                throw new Error('Session expired. Please login again.');
+            }
+        }
+    }
+
+    return response;
+}
+
 // Handle messages from content script and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Determine incognito status from request (popup) or sender.tab (content script)
@@ -27,7 +119,7 @@ async function handleMessage(request, isIncognito) {
             return await checkUsername(request.username);
 
         case 'registerUser':
-            return await registerUser(request.username, request.password, request.firstName, request.lastName, isIncognito);
+            return await registerUser(request.username, request.password, request.firstName, request.lastName, request.email, isIncognito);
 
         case 'loginUser':
             return await loginUser(request.username, request.password, isIncognito);
@@ -35,32 +127,32 @@ async function handleMessage(request, isIncognito) {
         case 'logoutUser':
             return await logoutUser(isIncognito);
 
-        case 'getUser':
-            return await getUser(request.userId);
-
         case 'getCurrentUser':
             return await getCurrentUser(isIncognito);
 
+        case 'deleteAccount':
+            return await deleteAccount(isIncognito);
+
         case 'getComments':
-            return await getComments(request.videoId, request.userId, request.sortBy);
+            return await getComments(request.videoId, request.sortBy, isIncognito);
 
         case 'deleteComment':
-            return await deleteComment(request.commentId, request.userId);
+            return await deleteComment(request.commentId, isIncognito);
 
         case 'editComment':
-            return await editComment(request.commentId, request.userId, request.content);
+            return await editComment(request.commentId, request.content, isIncognito);
 
         case 'voteComment':
-            return await voteComment(request.commentId, request.userId, request.voteType);
+            return await voteComment(request.commentId, request.voteType, isIncognito);
 
         case 'addComment':
-            return await addComment(request.videoId, request.userId, request.content);
+            return await addComment(request.videoId, request.content, isIncognito);
 
         case 'addReply':
-            return await addReply(request.commentId, request.userId, request.content);
+            return await addReply(request.commentId, request.content, isIncognito);
 
         case 'getUserComments':
-            return await getUserComments(request.userId);
+            return await getUserComments(isIncognito);
 
         case 'checkHealth':
             return await checkHealth();
@@ -83,11 +175,11 @@ async function checkUsername(username) {
 }
 
 // Register a new user
-async function registerUser(username, password, firstName, lastName, isIncognito) {
+async function registerUser(username, password, firstName, lastName, email, isIncognito) {
     const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, firstName, lastName })
+        body: JSON.stringify({ username, password, firstName, lastName, email: email || undefined })
     });
 
     if (!response.ok) {
@@ -95,13 +187,12 @@ async function registerUser(username, password, firstName, lastName, isIncognito
         throw new Error(error.error || 'Failed to register user');
     }
 
-    const user = await response.json();
+    const data = await response.json();
 
-    // Store user in appropriate storage (session for incognito, local for normal)
-    const storage = getStorage(isIncognito);
-    await storage.set({ user });
+    // Store auth data
+    await storeAuthData(isIncognito, data);
 
-    return user;
+    return data.user;
 }
 
 // Login user
@@ -117,46 +208,63 @@ async function loginUser(username, password, isIncognito) {
         throw new Error(error.error || 'Login failed');
     }
 
-    const user = await response.json();
+    const data = await response.json();
 
-    // Store user in appropriate storage
-    const storage = getStorage(isIncognito);
-    await storage.set({ user });
+    // Store auth data
+    await storeAuthData(isIncognito, data);
 
-    return user;
+    return data.user;
 }
 
 // Logout user
 async function logoutUser(isIncognito) {
-    const storage = getStorage(isIncognito);
-    await storage.remove('user');
-    return { success: true };
-}
+    const { refreshToken } = await getAuthData(isIncognito);
 
-// Get user by ID
-async function getUser(userId) {
-    const response = await fetch(`${API_BASE}/users/${userId}`);
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to get user');
+    // Invalidate refresh token on server
+    if (refreshToken) {
+        try {
+            await fetch(`${API_BASE}/auth/logout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken })
+            });
+        } catch (e) {
+            // Ignore errors, just clear local storage
+        }
     }
 
-    return await response.json();
+    await clearAuthData(isIncognito);
+    return { success: true };
 }
 
 // Get current logged-in user from storage
 async function getCurrentUser(isIncognito) {
-    const storage = getStorage(isIncognito);
-    const result = await storage.get('user');
-    return result.user || null;
+    const { user } = await getAuthData(isIncognito);
+    return user || null;
+}
+
+// Delete user account
+async function deleteAccount(isIncognito) {
+    const response = await authenticatedFetch(`${API_BASE}/auth/account`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+    }, isIncognito);
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete account');
+    }
+
+    await clearAuthData(isIncognito);
+    return { success: true, message: 'Account deleted' };
 }
 
 // Get comments for a video
-async function getComments(videoId, userId, sortBy = 'newest') {
+async function getComments(videoId, sortBy = 'newest', isIncognito) {
+    const { user } = await getAuthData(isIncognito);
     let url = `${API_BASE}/videos/${encodeURIComponent(videoId)}/comments?sort=${encodeURIComponent(sortBy)}`;
-    if (userId) {
-        url += `&userId=${encodeURIComponent(userId)}`;
+    if (user) {
+        url += `&userId=${encodeURIComponent(user.id)}`;
     }
 
     const response = await fetch(url);
@@ -170,12 +278,14 @@ async function getComments(videoId, userId, sortBy = 'newest') {
 }
 
 // Delete a comment
-async function deleteComment(commentId, userId) {
-    const response = await fetch(`${API_BASE}/comments/${commentId}`, {
+async function deleteComment(commentId, isIncognito) {
+    const { user } = await getAuthData(isIncognito);
+
+    const response = await authenticatedFetch(`${API_BASE}/comments/${commentId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-    });
+        body: JSON.stringify({ userId: user.id })
+    }, isIncognito);
 
     if (!response.ok) {
         const error = await response.json();
@@ -186,12 +296,14 @@ async function deleteComment(commentId, userId) {
 }
 
 // Edit a comment
-async function editComment(commentId, userId, content) {
-    const response = await fetch(`${API_BASE}/comments/${commentId}`, {
+async function editComment(commentId, content, isIncognito) {
+    const { user } = await getAuthData(isIncognito);
+
+    const response = await authenticatedFetch(`${API_BASE}/comments/${commentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, content })
-    });
+        body: JSON.stringify({ userId: user.id, content })
+    }, isIncognito);
 
     if (!response.ok) {
         const error = await response.json();
@@ -202,12 +314,14 @@ async function editComment(commentId, userId, content) {
 }
 
 // Vote on a comment (like/dislike)
-async function voteComment(commentId, userId, voteType) {
-    const response = await fetch(`${API_BASE}/comments/${commentId}/vote`, {
+async function voteComment(commentId, voteType, isIncognito) {
+    const { user } = await getAuthData(isIncognito);
+
+    const response = await authenticatedFetch(`${API_BASE}/comments/${commentId}/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, voteType })
-    });
+        body: JSON.stringify({ userId: user.id, voteType })
+    }, isIncognito);
 
     if (!response.ok) {
         const error = await response.json();
@@ -218,12 +332,14 @@ async function voteComment(commentId, userId, voteType) {
 }
 
 // Add a comment to a video
-async function addComment(videoId, userId, content) {
-    const response = await fetch(`${API_BASE}/videos/${encodeURIComponent(videoId)}/comments`, {
+async function addComment(videoId, content, isIncognito) {
+    const { user } = await getAuthData(isIncognito);
+
+    const response = await authenticatedFetch(`${API_BASE}/videos/${encodeURIComponent(videoId)}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, content })
-    });
+        body: JSON.stringify({ userId: user.id, content })
+    }, isIncognito);
 
     if (!response.ok) {
         const error = await response.json();
@@ -234,12 +350,14 @@ async function addComment(videoId, userId, content) {
 }
 
 // Reply to a comment
-async function addReply(commentId, userId, content) {
-    const response = await fetch(`${API_BASE}/comments/${commentId}/replies`, {
+async function addReply(commentId, content, isIncognito) {
+    const { user } = await getAuthData(isIncognito);
+
+    const response = await authenticatedFetch(`${API_BASE}/comments/${commentId}/replies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, content })
-    });
+        body: JSON.stringify({ userId: user.id, content })
+    }, isIncognito);
 
     if (!response.ok) {
         const error = await response.json();
@@ -249,9 +367,15 @@ async function addReply(commentId, userId, content) {
     return await response.json();
 }
 
-// Get all comments by a user
-async function getUserComments(userId) {
-    const response = await fetch(`${API_BASE}/users/${userId}/comments`);
+// Get all comments by current user
+async function getUserComments(isIncognito) {
+    const { user } = await getAuthData(isIncognito);
+
+    if (!user) {
+        throw new Error('Not logged in');
+    }
+
+    const response = await fetch(`${API_BASE}/users/${user.id}/comments`);
 
     if (!response.ok) {
         const error = await response.json();

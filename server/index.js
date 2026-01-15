@@ -1,13 +1,90 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
+const crypto = require('crypto');
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
 const SALT_ROUNDS = 10;
+
+// JWT Configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+const REFRESH_TOKEN_EXPIRES_DAYS = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS) || 7;
+
+// ============== HELPER FUNCTIONS ==============
+
+function generateAccessToken(user) {
+    return jwt.sign(
+        {
+            userId: user.id,
+            username: user.username
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+    );
+}
+
+function generateRefreshToken() {
+    return crypto.randomBytes(40).toString('hex');
+}
+
+async function createRefreshToken(userId) {
+    const token = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
+
+    await prisma.refreshToken.create({
+        data: {
+            token,
+            userId,
+            expiresAt
+        }
+    });
+
+    return { token, expiresAt };
+}
+
+// ============== JWT MIDDLEWARE ==============
+
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+        return res.status(401).json({ error: 'Access token required' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) {
+            if (err.name === 'TokenExpiredError') {
+                return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
+            }
+            return res.status(403).json({ error: 'Invalid token' });
+        }
+        req.user = decoded;
+        next();
+    });
+}
+
+// Optional auth - doesn't fail if no token, but attaches user if present
+function optionalAuth(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        req.user = null;
+        return next();
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        req.user = err ? null : decoded;
+        next();
+    });
+}
 
 // ============== RATE LIMITERS ==============
 
@@ -93,7 +170,7 @@ app.get('/api/auth/check-username/:username', async (req, res) => {
 // Register a new user
 app.post('/api/auth/register', registerLimiter, async (req, res) => {
     try {
-        const { username, password, firstName, lastName } = req.body;
+        const { username, password, firstName, lastName, email } = req.body;
 
         // Validate required fields
         if (!username || !password || !firstName || !lastName) {
@@ -123,6 +200,24 @@ app.post('/api/auth/register', registerLimiter, async (req, res) => {
             });
         }
 
+        // Validate email format if provided
+        if (email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return res.status(400).json({
+                    error: 'Invalid email format'
+                });
+            }
+
+            // Check if email already exists
+            const existingEmail = await prisma.user.findUnique({
+                where: { email: email.toLowerCase() }
+            });
+            if (existingEmail) {
+                return res.status(409).json({ error: 'Email is already registered' });
+            }
+        }
+
         // Check if username exists
         const existingUser = await prisma.user.findFirst({
             where: { username: { equals: username, mode: 'insensitive' } }
@@ -141,16 +236,27 @@ app.post('/api/auth/register', registerLimiter, async (req, res) => {
                 username: username.trim(),
                 password: hashedPassword,
                 firstName: firstName.trim(),
-                lastName: lastName.trim()
+                lastName: lastName.trim(),
+                email: email ? email.toLowerCase().trim() : null
             }
         });
 
+        // Generate tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = await createRefreshToken(user.id);
+
         res.status(201).json({
-            id: user.id,
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            createdAt: user.createdAt,
+            user: {
+                id: user.id,
+                username: user.username,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                emailVerified: user.emailVerified,
+                createdAt: user.createdAt
+            },
+            accessToken,
+            refreshToken: refreshToken.token,
             message: 'User registered successfully'
         });
     } catch (error) {
@@ -186,17 +292,137 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
 
+        // Generate tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = await createRefreshToken(user.id);
+
         res.json({
-            id: user.id,
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            createdAt: user.createdAt,
+            user: {
+                id: user.id,
+                username: user.username,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                emailVerified: user.emailVerified,
+                createdAt: user.createdAt
+            },
+            accessToken,
+            refreshToken: refreshToken.token,
             message: 'Login successful'
         });
     } catch (error) {
         console.error('Error logging in:', error);
         res.status(500).json({ error: 'Failed to login' });
+    }
+});
+
+// Refresh access token
+app.post('/api/auth/refresh', async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(400).json({ error: 'Refresh token required' });
+        }
+
+        // Find the refresh token
+        const storedToken = await prisma.refreshToken.findUnique({
+            where: { token: refreshToken },
+            include: { user: true }
+        });
+
+        if (!storedToken) {
+            return res.status(401).json({ error: 'Invalid refresh token' });
+        }
+
+        // Check if token is expired
+        if (new Date() > storedToken.expiresAt) {
+            // Delete expired token
+            await prisma.refreshToken.delete({ where: { id: storedToken.id } });
+            return res.status(401).json({ error: 'Refresh token expired' });
+        }
+
+        // Generate new access token
+        const accessToken = generateAccessToken(storedToken.user);
+
+        res.json({
+            accessToken,
+            user: {
+                id: storedToken.user.id,
+                username: storedToken.user.username,
+                firstName: storedToken.user.firstName,
+                lastName: storedToken.user.lastName,
+                email: storedToken.user.email,
+                emailVerified: storedToken.user.emailVerified,
+                createdAt: storedToken.user.createdAt
+            }
+        });
+    } catch (error) {
+        console.error('Error refreshing token:', error);
+        res.status(500).json({ error: 'Failed to refresh token' });
+    }
+});
+
+// Logout - invalidate refresh token
+app.post('/api/auth/logout', async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (refreshToken) {
+            // Delete the refresh token
+            await prisma.refreshToken.deleteMany({
+                where: { token: refreshToken }
+            });
+        }
+
+        res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+        console.error('Error logging out:', error);
+        res.status(500).json({ error: 'Failed to logout' });
+    }
+});
+
+// Get current user from token
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.userId },
+            select: {
+                id: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                emailVerified: true,
+                createdAt: true
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Failed to fetch user' });
+    }
+});
+
+// Delete user account
+app.delete('/api/auth/account', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // Delete user (cascades to comments, votes, refresh tokens)
+        await prisma.user.delete({
+            where: { id: userId }
+        });
+
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        res.status(500).json({ error: 'Failed to delete account' });
     }
 });
 
