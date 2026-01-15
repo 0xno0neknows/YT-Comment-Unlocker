@@ -314,8 +314,14 @@ body {
 }
 
 .btn-secondary {
+    width: 100%;
     border-color: var(--border-color);
     color: var(--text-secondary);
+}
+
+.btn-secondary svg {
+    width: 16px;
+    height: 16px;
 }
 
 .btn-secondary:hover {
@@ -324,10 +330,16 @@ body {
 }
 
 .btn-danger {
+    width: 100%;
     border-color: var(--error);
-    background: rgba(255, 68, 68, 0.1);
+    background: transparent;
     color: var(--error);
     margin-top: var(--space-sm);
+}
+
+.btn-danger svg {
+    width: 16px;
+    height: 16px;
 }
 
 .btn-danger:hover {
